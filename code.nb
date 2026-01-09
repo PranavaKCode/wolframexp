@@ -1,0 +1,99 @@
+CloudDeploy[
+ Manipulate[
+  TabView[{"Part I: Box Volume" -> 
+     Module[{vSimple, vWalls, pDiff, slope, plotData, linModel, 
+       slopeValue, colorStatus}, vSimple = volNoWalls[len, wid, hgt];
+      vWalls = volWithWalls[len, wid, hgt, thick];
+      pDiff = percDiff[vSimple, vWalls];
+      plotData = Table[{t, volWithWalls[len, wid, hgt, t]}, {t, 0, 10}];
+      slopeValue = 
+       If[Length[plotData] > 
+         1, (plotData[[-1, 2]] - plotData[[1, 2]])/(10 - 0), 0];
+      Grid[{{Panel[
+          Grid[{{Style["Simple Volume\n(No Walls)", Gray], 
+             Style["Volume w/\nWalls", Gray], 
+             Style["Percent\nDifference", Gray]}, {Style[
+              NumberForm[vSimple, DigitBlock -> 3], 20, Bold, Black], 
+             Style[NumberForm[vWalls, DigitBlock -> 3], 20, Bold, 
+              If[vWalls == 0, Red, Blue]], 
+             Style[Row[{NumberForm[pDiff, {5, 2}], "%"}], 20, Bold, 
+              Purple]}}, Spacings -> {2, 1}, Alignment -> Center], 
+          ImageSize -> Full, 
+          Background -> 
+           LightYellow]}, {Row[{Column[{Style[
+              "Volume vs. Thickness (0-10cm)", Bold], 
+             ListLinePlot[plotData, Frame -> True, 
+              FrameLabel -> {"Wall Thickness (cm)", "Volume (cm^3)"}, 
+              GridLines -> Automatic, ImageSize -> 350, 
+              PlotStyle -> {Thick, Blue}, 
+              Epilog -> {Red, PointSize[0.02], Point[{thick, vWalls}],
+                 Inset[Style[
+                  Row[{"Avg Slope: ", 
+                    NumberForm[slopeValue, DigitBlock -> 3]}], 10, 
+                  Darker[Green]], Scaled[{0.2, 0.2}]]}]}, 
+            Alignment -> Center], Spacer[20], 
+           Column[{Style["Visual Model", Bold], 
+             Graphics3D[{{Opacity[0.3], Blue, 
+                Cuboid[{0, 0, 0}, {len, wid, hgt}]}, 
+               If[vWalls > 0, {Opacity[0.8], Orange, 
+                 Cuboid[{thick, thick, thick}, {len - thick, 
+                   wid - thick, hgt - thick}]}, {Opacity[0.0], 
+                 Point[{0, 0, 0}]}]}, Boxed -> True, Axes -> False, 
+              ImageSize -> 200, ViewPoint -> {1.5, -2.5, 1.5}, 
+              SphericalRegion -> True, 
+              PlotLabel -> 
+               Style["Orange area is useable space", Smaller, Gray]]},
+             Alignment -> Center]}]}}, Alignment -> Center, 
+       Spacings -> {1, 2}]], 
+    "Part II: Logistic Growth" -> 
+     Module[{ymax, modelCurve, referenceCurve}, ymax = cap*1.1;
+      Column[{Panel[Style["Population Growth Simulator", 18, Bold], 
+         ImageSize -> Full, Alignment -> Center], Spacer[0], 
+        Show[Plot[logistic[p0, cap, rate, t], {t, 0, tMax}, 
+          PlotStyle -> {Thick, Blue}, 
+          PlotRange -> {{0, tMax}, {0, ymax}}, Frame -> True, 
+          FrameLabel -> {"Time (t)", "Population (P)"}, 
+          GridLines -> Automatic, ImageSize -> 500, 
+          PlotLegends -> {"Current Settings"}], 
+         If[showRef, 
+          Plot[logistic[refP0, refCap, refRate, t], {t, 0, tMax}, 
+           PlotStyle -> {Dashed, Gray}, 
+           PlotLegends -> {"Comparison Baseline"}], Graphics[{}]], 
+         Graphics[{Dashed, Red, Line[{{0, cap}, {tMax, cap}}], 
+           Text[Style["Carrying Capacity (M)", Red], {tMax*0.5, 
+             cap}, {0, -1.2}]}]], 
+        Pane[Style[
+          Row[{"Current Status: Starts at ", p0, ", grows at ", 
+            NumberForm[rate*100, 3], "% rate, caps at ", cap}], 12, 
+          Gray], Alignment -> Center]}, Alignment -> Center, 
+       Spacings -> {0, 0}]]}], 
+  Style["Part I: Box Settings", Bold, 
+   Medium], {{len, 200, "Length (cm)"}, 10, 500, 10, 
+   Appearance -> "Labeled"}, {{wid, 300, "Width (cm)"}, 10, 500, 10, 
+   Appearance -> "Labeled"}, {{hgt, 400, "Height (cm)"}, 10, 500, 10, 
+   Appearance -> "Labeled"}, {{thick, 0, "Wall Thickness"}, 0, 50, 
+   0.1, Appearance -> "Labeled"}, Delimiter, 
+  Style["Part II: Logistic Settings", Bold, 
+   Medium], {{p0, 20, "Initial Pop (P0)"}, 1, 500, 1, 
+   Appearance -> "Labeled"}, {{cap, 1000, "Capacity (M)"}, 100, 5000, 
+   50, Appearance -> "Labeled"}, {{rate, 0.5, "Growth Rate (r)"}, 0.1,
+    2.0, 0.05, Appearance -> "Labeled"}, {{tMax, 16, "Max Time"}, 10, 
+   50, 1, Appearance -> "Labeled"}, Delimiter, 
+  Style["Compare Graphs", Bold, 
+   Small], {{showRef, False, "Show Comparison"}, {True, 
+    False}}, {{refP0, 20, "Ref P0"}, 1, 500, 1, Enabled -> showRef, 
+   ImageSize -> Tiny}, {{refCap, 1000, "Ref M"}, 100, 5000, 50, 
+   Enabled -> showRef, ImageSize -> Tiny}, {{refRate, 0.5, "Ref r"}, 
+   0.1, 2.0, 0.05, Enabled -> showRef, ImageSize -> Tiny}, 
+  ControlPlacement -> Left, 
+  Initialization :> {volNoWalls[l_, w_, h_] := l*w*h;
+    volWithWalls[l_, w_, h_, t_] := 
+     Module[{inL, inW, inH}, inL = l - 2*t;
+      inW = w - 2*t;
+      inH = h - 2*t;
+      If[inL > 0 && inW > 0 && inH > 0, inL*inW*inH, 0]];
+    percDiff[v1_, v2_] := 
+     If[Min[v1, v2] == 0, 0, N[(Abs[v1 - v2]/Min[v1, v2])]*100];
+    logistic[p0_, m_, r_, 
+      t_] := (p0*m)/((m - p0)*Exp[-r*t] + p0);}], "Lab_Activity_App", 
+ Permissions -> "Public", AutoCopy -> False]
